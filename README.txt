@@ -9,22 +9,14 @@ Hướng dẫn cài đặt và sử dụng công cụ quản lý thiết bị m�
 Trước khi bắt đầu, hãy đảm bảo máy tính của bạn đã được cài đặt:
 
 * **Python**: Phiên bản 3.9 trở lên.
-* **Git**: Để tải mã nguồn từ repository.
 
 ---
 ## 2. Hướng Dẫn Cài Đặt Chi Tiết
 
 Thực hiện theo các bước dưới đây để cài đặt môi trường và chạy ứng dụng.
 
-### Bước 1: Tải mã nguồn về máy
-
-Mở Terminal (trên macOS/Linux) hoặc PowerShell/CMD (trên Windows) và chạy các lệnh sau:
-
-# Tải mã nguồn từ GitHub (thay URL bằng URL repo của bạn)
-git clone https://github.com/minhhung3009fetel-git/network-manager
-
-# Di chuyển vào thư mục dự án vừa tải về
-cd your-project-name
+### Bước 1: Di chuyển vào thư mục dự án vừa tải về
+cd network-manager
 
 
 ### Bước 2: Tạo và Kích hoạt Môi trường ảo
@@ -33,10 +25,6 @@ Sử dụng môi trường ảo là một bước rất quan trọng để khôn
 
 # Tạo một môi trường ảo tên là "venv"
 python -m venv venv
-
-# Kích hoạt môi trường ảo vừa tạo
-# Trên Windows:
-.\venv\Scripts\activate
 
 # Trên macOS hoặc Linux:
 source venv/bin/activate
@@ -68,3 +56,7 @@ Sau khi hoàn tất các bước cài đặt, bạn có thể khởi động ứ
 python main.py
 
 Giao diện chính của chương trình sẽ xuất hiện và bạn có thể bắt đầu sử dụng.
+
+-----------------
+Khi nào cần cập nhật code mới dùng lệnh:
+git pull origin main
