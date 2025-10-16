@@ -9,8 +9,32 @@ class CiscoDevice(VendorBase):
         return self.ssh.run("show running-config")
 
     def get_system_health(self):
-        # Kết hợp nhiều lệnh để lấy thông tin
-        cpu_output = self.ssh.run("show processes cpu sorted | include CPU")
-        mem_output = self.ssh.run("show memory summary | include Processor")
-        ver_output = self.ssh.run("show version | include uptime")
-        return f"--- System Health ---\nCPU: {cpu_output.strip()}\nMemory: {mem_output.strip()}\nUptime: {ver_output.strip()}"
+        # Lấy toàn bộ output trước
+        cpu_full_output = self.ssh.run("show processes cpu sorted")
+        mem_full_output = self.ssh.run("show memory summary")
+        ver_full_output = self.ssh.run("show version")
+
+        # Dùng Python để lọc ra dòng cần thiết
+        cpu_line = ""
+        for line in cpu_full_output.splitlines():
+            if "CPU utilization" in line:
+                cpu_line = line
+                break
+        
+        mem_line = ""
+        for line in mem_full_output.splitlines():
+            if "Processor" in line:
+                mem_line = line
+                break
+
+        uptime_line = ""
+        for line in ver_full_output.splitlines():
+            if "uptime is" in line:
+                uptime_line = line
+                break
+        
+        # Trả về kết quả đã được xử lý
+        return (f"--- System Health ---\n"
+                f"CPU: {cpu_line.strip()}\n"
+                f"Memory: {mem_line.strip()}\n"
+                f"Uptime: {uptime_line.strip()}")

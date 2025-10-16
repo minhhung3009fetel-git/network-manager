@@ -1,19 +1,18 @@
 # main.py
 import getpass
-from core.devices import list_devices, add_device, load_devices
 from modules.interface_info import show_interface_info
 from modules.system_health import show_system_health
 from modules.connection_check import check_all_devices_concurrently
 from core.backup_restore import backup_device_config
-from core.utils import clear_screen, is_device_reachable
-# Import các thành phần giao diện mới
+from core.utils import clear_screen, is_device_reachable, load_credentials
+from core.devices import list_devices, add_device, load_devices, delete_device
 from core.ui import console, print_panel, print_error, print_success, print_info, print_warning
 
 def menu_device_manager():
     """Menu con để quản lý danh sách thiết bị."""
     while True:
         clear_screen()
-        menu_text = "[1] Xem danh sách thiết bị\n[2] Thêm thiết bị mới\n[0] Quay lại menu chính"
+        menu_text = "[1] Xem danh sách thiết bị\n[2] Thêm thiết bị mới\n[3] Xóa thiết bị\n[0] Quay lại menu chính"
         print_panel(menu_text, title="🔧 QUẢN LÝ THIẾT BỊ")
         choice = input("Chọn: ").strip()
 
@@ -23,19 +22,17 @@ def menu_device_manager():
         elif choice == "2":
             add_device()
             input("\nNhấn Enter để tiếp tục...")
+        elif choice == "3":
+            delete_device()
+            input("\nNhấn Enter để tiếp tục...")
         elif choice == "0":
             break
         else:
             print_error("Lựa chọn không hợp lệ, vui lòng chọn lại.")
             input("\nNhấn Enter để tiếp tục...")
 
-def menu_device_actions(device):
+def menu_device_actions(device, username, password):
     """Menu con để thực hiện các tác vụ trên thiết bị đã chọn."""
-    clear_screen()
-    console.rule(f"[bold green]Thao tác với thiết bị: {device['name']} ({device['ip']})[/bold green]")
-    username = input("Nhập SSH username: ").strip()
-    password = getpass.getpass("Nhập SSH password: ").strip()
-
     while True:
         clear_screen()
         console.rule(f"Đang thao tác trên: [bold cyan]{device['name']} ({device['ip']})[/bold cyan]")
@@ -84,7 +81,20 @@ def select_device_and_run_actions():
 
             if is_device_reachable(selected_device['ip']):
                 print_success("Thiết bị đang hoạt động!")
-                menu_device_actions(selected_device)
+                # --- LOGIC MỚI ĐỂ ĐĂNG NHẬP ---
+                username, password = load_credentials() # Thử tải tự động
+
+                if username and password:
+                    print_info(f"Sử dụng thông tin đăng nhập tự động từ file .env (user: {username})")
+                else:
+                    # Nếu không có, hỏi thủ công
+                    print_warning("Không tìm thấy file .env. Vui lòng nhập thông tin đăng nhập.")
+                    username = input("Nhập SSH username: ").strip()
+                    password = getpass.getpass("Nhập SSH password: ").strip()
+                # --- KẾT THÚC LOGIC MỚI ---
+
+                # Truyền thông tin đăng nhập vào menu tác vụ
+                menu_device_actions(selected_device, username, password)
             else:
                 print_error(f"Không thể kết nối đến thiết bị {selected_device['name']}. Vui lòng kiểm tra lại.")
                 input("\nNhấn Enter để tiếp tục...")

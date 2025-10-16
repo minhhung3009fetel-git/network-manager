@@ -1,3 +1,6 @@
 HN-Router,10.10.0.1,cisco_ios
 HN-Firewall,10.10.0.9,fortinet
 HN-Core,10.10.0.10,cisco_ios
+HCM-Router,10.20.0.1,cisco_ios
+HCM-Firewall,10.20.0.2,fortinet
+HCM-Core,10.20.0.10,cisco_ios

@@ -63,3 +63,43 @@ def list_devices():
         table.add_row(str(i), name, info['ip'], info['device_type'])
 
     console.print(table)
+
+def delete_device():
+    """Hiển thị danh sách và xóa một thiết bị được chọn."""
+    devices = load_devices()
+    if not devices:
+        print_warning("Không có thiết bị nào để xóa.")
+        return
+
+    console.rule("[bold red]Xóa một thiết bị[/bold red]")
+    device_names = list(devices.keys())
+
+    # Hiển thị danh sách thiết bị để người dùng chọn
+    for i, name in enumerate(device_names, start=1):
+        console.print(f"  [cyan]{i})[/cyan] {name} ({devices[name]['ip']})")
+
+    try:
+        choice = int(input("\nChọn số thứ tự của thiết bị cần xóa (nhập 0 để hủy): ").strip())
+        
+        if choice == 0:
+            print_info("Hủy bỏ thao tác xóa.")
+            return
+
+        if 0 < choice <= len(device_names):
+            device_to_delete = device_names[choice - 1]
+
+            # Thêm bước xác nhận để tránh xóa nhầm
+            confirm = input(f"⚠️ Bạn có chắc chắn muốn xóa '{device_to_delete}' không? (y/n): ").strip().lower()
+
+            if confirm == 'y':
+                # Xóa thiết bị khỏi dictionary
+                del devices[device_to_delete]
+                # Lưu lại danh sách mới vào file
+                save_devices(devices)
+                print_success(f"Đã xóa thành công thiết bị '{device_to_delete}'.")
+            else:
+                print_info("Hủy bỏ thao tác xóa.")
+        else:
+            print_error("Lựa chọn không hợp lệ.")
+    except ValueError:
+        print_error("Vui lòng nhập một số hợp lệ.")

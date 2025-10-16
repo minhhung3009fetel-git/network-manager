@@ -21,7 +21,7 @@ Thực hiện theo các bước dưới đây để cài đặt môi trường v
 Mở Terminal (trên macOS/Linux) hoặc PowerShell/CMD (trên Windows) và chạy các lệnh sau:
 
 # Tải mã nguồn từ GitHub (thay URL bằng URL repo của bạn)
-git clone https://github.com/your-username/your-project-name.git
+git clone https://github.com/minhhung3009fetel-git/network-manager
 
 # Di chuyển vào thư mục dự án vừa tải về
 cd your-project-name

@@ -2,6 +2,7 @@
 import os
 import platform
 import socket
+from dotenv import load_dotenv
 
 def clear_screen():
     """Xóa màn hình console, hoạt động trên cả Windows, macOS và Linux."""
@@ -28,3 +29,13 @@ def is_device_reachable(ip, port=22, timeout=3):
         return False
     # Nếu có bất kỳ lỗi nào khác hoặc không thành công
     return False
+
+def load_credentials():
+    """
+    Tải username và password từ file .env.
+    Trả về (username, password) nếu có, ngược lại trả về (None, None).
+    """
+    load_dotenv()  # Tải các biến môi trường từ file .env
+    username = os.getenv("SSH_USERNAME")
+    password = os.getenv("SSH_PASSWORD")
+    return username, password
