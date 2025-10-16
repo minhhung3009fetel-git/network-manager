@@ -1,4 +1,5 @@
 # core/vendors/vendor_cisco.py
+import re
 from core.vendors.vendor_base import VendorBase
 
 class CiscoDevice(VendorBase):
@@ -14,27 +15,33 @@ class CiscoDevice(VendorBase):
         mem_full_output = self.ssh.run("show memory summary")
         ver_full_output = self.ssh.run("show version")
 
-        # Dùng Python để lọc ra dòng cần thiết
-        cpu_line = ""
-        for line in cpu_full_output.splitlines():
-            if "CPU utilization" in line:
-                cpu_line = line
-                break
-        
-        mem_line = ""
-        for line in mem_full_output.splitlines():
-            if "Processor" in line:
-                mem_line = line
-                break
+        # --- Xử lý CPU ---
+        # Tìm chuỗi "five minutes: X%" và lấy giá trị X
+        cpu_match = re.search(r'five minutes: (\d+)%', cpu_full_output)
+        cpu_usage = cpu_match.group(1) if cpu_match else "N/A"
+        cpu_line = f"CPU Usage: {cpu_usage}%"
 
-        uptime_line = ""
-        for line in ver_full_output.splitlines():
-            if "uptime is" in line:
-                uptime_line = line
-                break
+        # --- Xử lý Memory ---
+        # Tìm dòng bắt đầu bằng "Processor", sau đó lấy 2 cột số đầu tiên (Total và Used)
+        mem_match = re.search(r'Processor\s+\S+\s+(\d+)\s+(\d+)', mem_full_output)
+        mem_line = "Memory Usage: N/A"
+        if mem_match:
+            total_mem = int(mem_match.group(1))
+            used_mem = int(mem_match.group(2))
+            if total_mem > 0:
+                mem_percent = (used_mem / total_mem) * 100
+                # Chuyển đổi sang MB để dễ đọc
+                used_mb = used_mem // (1024 * 1024)
+                total_mb = total_mem // (1024 * 1024)
+                mem_line = f"Memory Usage: {mem_percent:.2f}% ({used_mb}MB / {total_mb}MB)"
         
-        # Trả về kết quả đã được xử lý
+        # --- Xử lý Uptime (giữ nguyên nhưng làm sạch) ---
+        uptime_match = re.search(r'uptime is (.*)', ver_full_output, re.IGNORECASE)
+        uptime_info = uptime_match.group(1) if uptime_match else "N/A"
+        uptime_line = f"Uptime: {uptime_info.strip()}"
+
+        # Trả về kết quả đã được định dạng đẹp
         return (f"--- System Health ---\n"
-                f"CPU: {cpu_line.strip()}\n"
-                f"Memory: {mem_line.strip()}\n"
-                f"Uptime: {uptime_line.strip()}")
+                f"{cpu_line}\n"
+                f"{mem_line}\n"
+                f"{uptime_line}")

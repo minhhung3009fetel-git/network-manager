@@ -10,29 +10,29 @@ class FortinetDevice(VendorBase):
         return self.ssh.run("show full-configuration")
 
     def get_system_health(self):
-        """
-        Lấy và phân tích thông tin CPU, RAM, Uptime cho thiết bị Fortinet.
-        Phiên bản cuối cùng, hoạt động chính xác với output của bạn.
-        """
+        """Lấy thông tin CPU, RAM, Uptime cho thiết bị Fortinet."""
+        # Lệnh 'get system performance status' trên FortiOS cung cấp đủ thông tin
         output = self.ssh.run("get system performance status")
-        
+ 
         # --- Xử lý CPU ---
-        cpu_match = re.search(r'CPU states:.*?\s+(\d+)%\s+idle', output)
+        # Lấy % idle và tính ra % usage
+        cpu_match = re.search(r'CPU states:.* (\d+)% idle', output)
         cpu_usage = 100 - int(cpu_match.group(1)) if cpu_match else "N/A"
         cpu_line = f"CPU Usage: {cpu_usage}%"
 
-        # --- Xử lý Memory (ĐÃ SỬA) ---
-        # Regex mới sẽ tìm con số phần trăm nằm trong dấu ngoặc đơn, ví dụ: (32.9%)
-        mem_match = re.search(r'Memory:.*?\((\d+\.?\d*)%\)', output)
+        # --- Xử lý Memory ---
+        # Lấy trực tiếp % memory đã sử dụng
+        mem_match = re.search(r'Memory: (\d+)% of (\d+MB)', output)
         mem_line = "Memory Usage: N/A"
         if mem_match:
             mem_percent = mem_match.group(1)
+            total_mem = mem_match.group(2)
             mem_line = f"Memory Usage: {mem_percent}%"
-        
+
         # --- Xử lý Uptime ---
-        uptime_match = re.search(r'Uptime:\s+(.*)', output, re.IGNORECASE)
-        uptime_info = uptime_match.group(1).strip() if uptime_match else "N/A"
-        uptime_line = f"Uptime: {uptime_info}"
+        uptime_match = re.search(r'Uptime: (.*)', output)
+        uptime_info = uptime_match.group(1) if uptime_match else "N/A"
+        uptime_line = f"Uptime: {uptime_info.strip()}"
 
         return (f"--- System Health (Fortinet) ---\n"
                 f"{cpu_line}\n"
