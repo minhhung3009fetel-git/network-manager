@@ -1,0 +1,9 @@
+# Thư mục chứa các bản backup cấu hình
+data/backups/
+
+# Thư mục cache của Python
+__pycache__/
+
+# Môi trường ảo
+venv/
+.venv/
