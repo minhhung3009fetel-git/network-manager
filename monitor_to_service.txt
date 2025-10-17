@@ -1,0 +1,70 @@
+# Bước 1: Tạo file Service Unit
+Đây là file cấu hình để "dạy" cho hệ điều hành biết cách chạy script của bạn.
+
+Mở trình soạn thảo văn bản với quyền root để tạo một file mới:
+
+sudo nano /etc/systemd/system/net-monitor.service
+
+Dán toàn bộ nội dung sau vào file đó.
+
+[Unit]
+Description=Network Connection Monitoring Service
+After=network.target
+
+[Service]
+# Thay 'minhhung' bằng username của bạn nếu khác
+User=minhhung
+Group=minhhung
+
+# THAY ĐỔI ĐƯỜNG DẪN NÀY cho đúng với thư mục dự án của bạn
+WorkingDirectory=/home/minhhung/network_manager
+
+# THAY ĐỔI ĐƯỜNG DẪN NÀY cho đúng với file python trong môi trường ảo
+ExecStart=/home/minhhung/network_manager/venv/bin/python monitor.py
+
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+
+Rất quan trọng: Bạn cần thay đổi lại 2 đường dẫn (WorkingDirectory và ExecStart) cho chính xác với vị trí bạn lưu dự án trên server.
+
+Nhấn Ctrl+X, sau đó Y, và Enter để lưu và thoát.
+
+## Bước 2: Quản lý Service bằng systemctl
+Sau khi tạo file cấu hình, bạn cần dùng các lệnh sau để quản lý dịch vụ.
+
+Tải lại cấu hình systemd: Lệnh này để hệ thống nhận diện được file service mới của bạn.
+
+Bash
+
+sudo systemctl daemon-reload
+Kích hoạt service để tự chạy khi khởi động:
+
+Bash
+
+sudo systemctl enable net-monitor.service
+Khởi động service ngay lập tức:
+
+Bash
+
+sudo systemctl start net-monitor.service
+Kiểm tra trạng thái service: Đây là lệnh quan trọng nhất để xem service có đang chạy ổn định không.
+
+Bash
+
+sudo systemctl status net-monitor.service
+Nếu bạn thấy dòng chữ active (running) màu xanh lá, có nghĩa là mọi thứ đã thành công!
+
+## Cách xem Log (Nhật ký)
+Khi script chạy nền, nó sẽ không in ra màn hình nữa. Để xem các dòng log (✅ Kết nối ổn định, 🚨 Mất kết nối, v.v.), bạn hãy dùng lệnh:
+
+Bash
+
+journalctl -u net-monitor.service -f
+journalctl -u net-monitor.service: Xem toàn bộ log từ trước đến giờ.
+
+Thêm cờ -f: Theo dõi log theo thời gian thực (giống tail -f).
+
+Bạn cần thực hiện các bước trên cho cả hai server HN và HCM. Sau khi hoàn tất, hệ thống giám sát của bạn đã chính thức đi vào hoạt động tự động!
