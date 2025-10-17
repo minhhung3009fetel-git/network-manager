@@ -22,18 +22,15 @@ def check_device_status(device_name, device_ip, results):
     except Exception:
         results.append((device_name, device_ip, "DOWN"))
 
-
-def check_all_devices_concurrently():
+def get_all_device_statuses():
     """
-    Sử dụng đa luồng để kiểm tra kết nối đến tất cả thiết bị cùng lúc.
+    Hàm mới: Chạy kiểm tra đa luồng và TRẢ VỀ danh sách kết quả.
     """
     devices = load_devices()
     if not devices:
         print_warning("❌ Chưa có thiết bị nào trong danh sách.")
-        return
+        return []
 
-    print_info("\n🔄 Đang kiểm tra kết nối đến tất cả thiết bị...")
-    
     threads = []
     results = []
     
@@ -43,10 +40,19 @@ def check_all_devices_concurrently():
         thread.start()
 
     for thread in threads:
-        thread.join() # Chờ tất cả các luồng hoàn thành
+        thread.join()
 
-    # Sắp xếp kết quả để dễ nhìn
     results.sort()
+    return results
+
+def check_all_devices_concurrently():
+    """
+    Sử dụng đa luồng để kiểm tra kết nối đến tất cả thiết bị cùng lúc.
+    """
+
+    print_info("\n🔄 Đang kiểm tra kết nối đến tất cả thiết bị...")
+    
+    results = get_all_device_statuses()
 
     table = create_table(
         "KẾT QUẢ KIỂM TRA KẾT NỐI",
