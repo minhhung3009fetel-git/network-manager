@@ -45,3 +45,10 @@ def get_current_branch():
     load_dotenv()
     # Mặc định là chuỗi rỗng nếu không được định nghĩa
     return os.getenv("BRANCH_ID", "").upper()
+
+def load_telegram_config():
+    """Tải Token và Chat ID của Telegram Bot từ file .env."""
+    load_dotenv()
+    token = os.getenv("TELEGRAM_BOT_TOKEN")
+    chat_id = os.getenv("TELEGRAM_CHAT_ID")
+    return token, chat_id

@@ -2,3 +2,4 @@
 netmiko
 rich
 python-dotenv
+python-telegram-bot
