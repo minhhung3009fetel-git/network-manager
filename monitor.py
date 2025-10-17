@@ -4,6 +4,8 @@ import time
 import os
 import threading
 import telegram
+import asyncio
+from telegram.constants import ParseMode
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
@@ -19,7 +21,14 @@ connection_is_up = True
 downtime_start = None
 
 def send_telegram_message(message):
-    """Hàm gửi tin nhắn qua Telegram."""
+    """Hàm đồng bộ (synchronous) mà các phần khác của code sẽ gọi."""
+    try:
+        asyncio.run(send_telegram_message_async(message))
+    except Exception as e:
+        print(f"❌ Lỗi khi chạy tác vụ gửi Telegram: {e}")
+
+async def send_telegram_message_async(message):
+    """Hàm bất đồng bộ (asynchronous) thực sự thực hiện việc gửi tin nhắn."""
     token, chat_id = load_telegram_config()
     if not token or not chat_id:
         print("⚠️ Lỗi: Chưa cấu hình TELEGRAM_BOT_TOKEN hoặc TELEGRAM_CHAT_ID trong file .env")
@@ -27,7 +36,8 @@ def send_telegram_message(message):
 
     try:
         bot = telegram.Bot(token=token)
-        bot.send_message(chat_id=chat_id, text=message, parse_mode=telegram.ParseMode.MARKDOWN)
+        # Dùng 'await' để đợi cho tác vụ gửi tin nhắn hoàn tất
+        await bot.send_message(chat_id=chat_id, text=message, parse_mode=ParseMode.MARKDOWN)
         print(f"✅ Đã gửi thông báo Telegram thành công.")
     except Exception as e:
         print(f"❌ Lỗi khi gửi Telegram: {e}")
