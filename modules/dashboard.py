@@ -11,13 +11,12 @@ from rich.text import Text
 from rich.columns import Columns
 
 from modules.connection_check import get_all_device_statuses
+from core.utils import get_current_branch # <-- Import hàm mới
 
 REFRESH_INTERVAL = 60 # Giây
 
 def user_pressed_enter():
     """Kiểm tra xem người dùng có nhấn Enter không mà không chặn chương trình."""
-    # select.select sẽ kiểm tra stdin (đầu vào chuẩn)
-    # Timeout = 0 có nghĩa là nó không chờ đợi, chỉ kiểm tra ngay lập tức
     return select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], [])
 
 def generate_layout(dashboard_data, time_left, is_refreshing):
@@ -40,38 +39,61 @@ def generate_layout(dashboard_data, time_left, is_refreshing):
     header_columns = Columns([header_text, time_text])
     layout["header"].update(Panel(header_columns, style="bold cyan", border_style="cyan"))
 
+    # --- Logic lọc mới ---
+    current_branch = get_current_branch()
+    down_devices_all = [res for res in dashboard_data if res[2] != "UP"]
+    
+    # Lọc ra các thiết bị down thuộc chi nhánh hiện tại
+    down_devices_local = [
+        (name, ip, status) for name, ip, status in down_devices_all
+        if current_branch and name.upper().startswith(current_branch)
+    ]
+    # Lọc ra các thiết bị down thuộc chi nhánh còn lại
+    down_devices_remote = [
+        (name, ip, status) for name, ip, status in down_devices_all
+        if current_branch and not name.upper().startswith(current_branch)
+    ]
+
     # --- Phần Thân (Tóm tắt & Menu) ---
     total_devices = len(dashboard_data)
-    down_devices = [res for res in dashboard_data if res[2] != "UP"]
-    up_count = total_devices - len(down_devices)
-    down_count = len(down_devices)
-
-    # Panel Tóm tắt
+    up_count = total_devices - len(down_devices_all)
+    down_count_local = len(down_devices_local)
+    
     countdown_str = f"🔄 Đang làm mới..." if is_refreshing else f"Cập nhật sau {int(time_left)}s"
     summary_text = Text()
     summary_text.append("  - Tổng số thiết bị: ", style="default")
     summary_text.append(f"{total_devices}\n", style="bold")
     summary_text.append("  - Đang hoạt động:   ", style="default")
     summary_text.append(f"{up_count}\n", style="bold green")
-    summary_text.append("  - Gặp sự cố:        ", style="default")
-    summary_text.append(f"{down_count}", style="bold red")
+    summary_text.append(f"  - Sự cố (local):    ", style="default")
+    summary_text.append(f"{down_count_local}", style="bold red")
     summary_panel = Panel(summary_text, title=f"📊 TỔNG QUAN - {countdown_str}", border_style="cyan")
 
-    # Panel Menu
     menu_text = "[1] Quản lý thiết bị\n[2] Thao tác với thiết bị\n[3] In lại bảng trạng thái\n[R] Làm mới Dashboard\n[0] Thoát\n\n[bold]Nhấn [ENTER] để vào Menu[/bold]"
     menu_panel = Panel(menu_text, title="🛠️ MENU", border_style="green")
 
     layout["summary"].update(summary_panel)
     layout["menu"].update(menu_panel)
 
-    # --- Phần Cảnh báo (Chỉ hiện khi có sự cố) ---
-    if down_count > 0:
+    # --- Phần Cảnh báo Động (Ưu tiên cảnh báo nội bộ trước) ---
+    if down_count_local > 0:
+        # Ưu tiên 1: Hiển thị lỗi nghiêm trọng tại chi nhánh
         layout["alert"].visible = True
-        alert_text = Text("Các thiết bị sau đang gặp sự cố:\n", style="default")
-        for name, ip, status in down_devices:
+        alert_text = Text("Các thiết bị sau tại chi nhánh này đang gặp sự cố:\n", style="default")
+        for name, ip, status in down_devices_local:
             style = "bold red" if status == "DOWN" else "bold yellow"
             alert_text.append(f"  - {name} ({ip})\n", style=style)
-        layout["alert"].update(Panel(alert_text, title="⚠️ CẢNH BÁO", border_style="red"))
+        layout["alert"].update(Panel(alert_text, title="⚠️ CẢNH BÁO NỘI BỘ", border_style="red"))
+
+    elif len(down_devices_remote) > 0:
+        # Ưu tiên 2: Hiển thị thông báo mất kết nối đến chi nhánh còn lại
+        layout["alert"].visible = True
+        notification_text = Text(
+            "Mất kết nối đến chi nhánh còn lại.\n\n"
+            "Vui lòng liên hệ bộ phận IT của chi nhánh đó để kiểm tra.",
+            justify="center"
+        )
+        layout["alert"].update(Panel(notification_text, title="🔔 THÔNG BÁO KẾT NỐI", border_style="yellow"))
 
     return layout
 
@@ -83,16 +105,13 @@ def run_live_dashboard():
 
     with Live(generate_layout([], REFRESH_INTERVAL, True), screen=True, redirect_stderr=False, auto_refresh=False) as live:
         while True:
-            # Kiểm tra nếu người dùng muốn vào menu
             if user_pressed_enter():
-                # Xóa bộ đệm đầu vào để không ảnh hưởng đến lần input() tiếp theo
                 sys.stdin.readline()
                 break
 
             current_time = time.time()
             time_since_last_update = current_time - last_update_time
             
-            # Logic làm mới dữ liệu
             if time_since_last_update >= REFRESH_INTERVAL and not is_refreshing:
                 is_refreshing = True
                 live.update(generate_layout(dashboard_data, 0, is_refreshing), refresh=True)

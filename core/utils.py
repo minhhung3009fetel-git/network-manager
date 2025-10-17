@@ -39,3 +39,9 @@ def load_credentials():
     username = os.getenv("SSH_USERNAME")
     password = os.getenv("SSH_PASSWORD")
     return username, password
+
+def get_current_branch():
+    """Đọc mã chi nhánh (ví dụ: 'HN' hoặc 'HCM') từ file .env."""
+    load_dotenv()
+    # Mặc định là chuỗi rỗng nếu không được định nghĩa
+    return os.getenv("BRANCH_ID", "").upper()
