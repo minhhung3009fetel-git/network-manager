@@ -3,7 +3,7 @@ import getpass
 from core.devices import list_devices, add_device, delete_device, load_devices
 from core.ui import console, print_panel, print_error, print_success, print_info, print_warning
 from core.utils import clear_screen, is_device_reachable, load_credentials
-from core.backup_restore import backup_device_config
+from core.backup_restore import backup_device_config, BASE_BACKUP_DIR, restore_single_device, restore_by_branch, restore_all
 from modules.interface_info import show_interface_info
 from modules.system_health import show_system_health
 
@@ -31,7 +31,7 @@ def menu_device_actions(device, username, password):
         choice = input("Chọn: ").strip()
         if choice == "1": show_interface_info(device, username, password); input("\nNhấn Enter...")
         elif choice == "2": show_system_health(device, username, password); input("\nNhấn Enter...")
-        elif choice == "3": backup_device_config(device, username, password); input("\nNhấn Enter...")
+        elif choice == "3": backup_device_config(device, username, password, BASE_BACKUP_DIR); input("\nNhấn Enter...")
         elif choice == "0": break
         else: print_error("Lựa chọn không hợp lệ."); input("\nNhấn Enter...")
 
@@ -62,3 +62,26 @@ def select_device_and_run_actions():
             else: print_error(f"Không thể kết nối."); input("\nNhấn Enter...")
         else: print_error("Lựa chọn không hợp lệ."); input("\nNhấn Enter...")
     except ValueError: print_error("Vui lòng nhập số."); input("\nNhấn Enter...")
+
+def menu_restore():
+    """Menu con cho các chức năng Restore."""
+    while True:
+        clear_screen()
+        menu_text = "[1] Restore một thiết bị\n[2] Restore theo chi nhánh\n[3] Restore toàn bộ hệ thống\n[0] Quay lại"
+        print_panel(menu_text, title="🔧 KHÔI PHỤC CẤU HÌNH")
+        choice = input("Chọn: ").strip()
+
+        if choice == "1":
+            restore_single_device()
+            input("\nNhấn Enter để tiếp tục...")
+        elif choice == "2":
+            restore_by_branch()
+            input("\nNhấn Enter để tiếp tục...")
+        elif choice == "3":
+            restore_all()
+            input("\nNhấn Enter để tiếp tục...")
+        elif choice == "0":
+            break
+        else:
+            print_error("Lựa chọn không hợp lệ.")
+            input("\nNhấn Enter để tiếp tục...")

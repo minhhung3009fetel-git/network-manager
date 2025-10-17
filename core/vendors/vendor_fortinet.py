@@ -38,3 +38,4 @@ class FortinetDevice(VendorBase):
                 f"{cpu_line}\n"
                 f"{mem_line}\n"
                 f"{uptime_line}")
+

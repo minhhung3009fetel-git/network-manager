@@ -2,9 +2,10 @@
 from core.devices import list_devices, add_device, delete_device
 from core.ui import console, print_error, print_success, print_warning
 from core.utils import clear_screen
+from core.backup_restore import backup_all_devices
 from modules.connection_check import check_all_devices_concurrently
 from modules.dashboard import run_live_dashboard # <-- Import màn hình live
-from main_actions import select_device_and_run_actions, menu_device_manager # <-- Tách ra file mới
+from main_actions import select_device_and_run_actions, menu_device_manager, menu_restore
 
 def main_menu():
     """Vòng lặp menu chính sau khi dashboard đã thoát."""
@@ -15,6 +16,8 @@ def main_menu():
         print(" [1] Quản lý danh sách thiết bị")
         print(" [2] Kết nối và thao tác với thiết bị")
         print(" [3] In lại bảng trạng thái chi tiết")
+        print(" [4] Backup toàn bộ hệ thống")
+        print(" [5] Khôi phục cấu hình (Restore)")
         print(" [R] Hiển thị lại Dashboard")
         print(" [0] Thoát chương trình")
         
@@ -27,6 +30,10 @@ def main_menu():
         elif choice == '3':
             check_all_devices_concurrently()
             input("\nNhấn Enter để tiếp tục...")
+        elif choice == '4':
+            backup_all_devices()
+        elif choice == '5':
+            menu_restore()
         elif choice == 'r':
             run_live_dashboard() # Gọi lại dashboard
         elif choice == '0':

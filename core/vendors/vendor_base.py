@@ -12,3 +12,7 @@ class VendorBase:
     def get_system_health(self):
         """Lấy thông tin tổng quan về CPU, RAM, Uptime."""
         raise NotImplementedError
+
+    def restore_config(self, config_commands):
+        """Phương thức để restore cấu hình từ một danh sách các lệnh."""
+        raise NotImplementedError

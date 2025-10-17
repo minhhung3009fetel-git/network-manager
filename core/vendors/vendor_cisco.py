@@ -45,3 +45,7 @@ class CiscoDevice(VendorBase):
                 f"{cpu_line}\n"
                 f"{mem_line}\n"
                 f"{uptime_line}")
+
+    def restore_config(self, config_commands):
+        """Đối với Cisco, send_config_set là đủ."""
+        return self.ssh.conn.send_config_set(config_commands)
