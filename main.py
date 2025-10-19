@@ -5,6 +5,7 @@ from core.utils import clear_screen
 from core.backup_restore import backup_all_devices
 from modules.connection_check import check_all_devices_concurrently
 from modules.dashboard import run_live_dashboard # <-- Import màn hình live
+from modules.bulk_config import run_bulk_config_push
 from main_actions import select_device_and_run_actions, menu_device_manager, menu_restore
 
 def main_menu():
@@ -18,6 +19,7 @@ def main_menu():
         print(" [3] In lại bảng trạng thái chi tiết")
         print(" [4] Backup toàn bộ hệ thống")
         print(" [5] Khôi phục cấu hình (Restore)")
+        print(" [6] Đẩy cấu hình hàng loạt")
         print(" [R] Hiển thị lại Dashboard")
         print(" [0] Thoát chương trình")
         
@@ -34,6 +36,9 @@ def main_menu():
             backup_all_devices()
         elif choice == '5':
             menu_restore()
+        elif choice == '6':
+            run_bulk_config_push()
+            input("\nNhấn Enter để tiếp tục...")
         elif choice == 'r':
             run_live_dashboard() # Gọi lại dashboard
         elif choice == '0':

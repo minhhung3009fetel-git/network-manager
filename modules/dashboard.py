@@ -69,7 +69,7 @@ def generate_layout(dashboard_data, time_left, is_refreshing):
     summary_text.append(f"{down_count_local}", style="bold red")
     summary_panel = Panel(summary_text, title=f"📊 TỔNG QUAN - {countdown_str}", border_style="cyan")
 
-    menu_text = "[1] Quản lý thiết bị\n[2] Thao tác với thiết bị\n[3] In lại bảng trạng thái\n[4] Backup toàn bộ hệ thống\n[5] Khôi phục cấu hình (Restore)\n[R] Làm mới Dashboard\n[0] Thoát\n\n[bold]Nhấn [ENTER] để vào Menu[/bold]"
+    menu_text = "[1] Quản lý thiết bị\n[2] Thao tác với thiết bị\n[3] In lại bảng trạng thái\n[4] Backup toàn bộ hệ thống\n[5] Khôi phục cấu hình (Restore)\n[6] Đẩy cấu hình hàng loạt\n[R] Làm mới Dashboard\n[0] Thoát\n\n[bold]Nhấn [ENTER] để vào Menu[/bold]"
     menu_panel = Panel(menu_text, title="🛠️ MENU", border_style="green")
 
     layout["summary"].update(summary_panel)
