@@ -1,0 +1,19 @@
+# core/templates/interface_allowaccess.yaml
+name: "Cấu hình Allowaccess trên Interface"
+description: "Cho phép các giao thức quản trị (ping, https, ssh, snmp) trên một interface."
+
+variables:
+  - name: "interface_name"
+    prompt: "Nhập tên interface cần cấu hình (ví dụ: port2)"
+    default: "port2"
+  - name: "access_list"
+    prompt: "Nhập danh sách allowaccess (cách nhau bởi dấu cách)"
+    default: "ping https ssh snmp"
+
+commands:
+  fortinet:
+    - "config system interface"
+    - "edit \"{{ interface_name }}\""
+    - "set allowaccess {{ access_list }}"
+    - "next"
+    - "end"

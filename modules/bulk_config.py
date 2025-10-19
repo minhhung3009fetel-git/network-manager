@@ -54,8 +54,11 @@ def run_bulk_config_push():
     print_info("Các mẫu cấu hình có sẵn:")
     for i, t in enumerate(templates, 1):
         print(f" [{i}] {t['name']} - {t['description']}")
+    print("\n [0] Quay lại")
+
     try:
         choice = int(input("\nChọn mẫu để đẩy: ").strip())
+        if choice == 0: print_info("Đã hủy."); return
         selected_template = templates[choice - 1]
     except (ValueError, IndexError):
         print_error("Lựa chọn không hợp lệ."); return
@@ -75,6 +78,9 @@ def run_bulk_config_push():
         print(f" [{i}] {name} ({info['device_type']})")
     
     target_input = input("\nNhập số thứ tự (ví dụ: 1,3,5) hoặc 'all' để chọn tất cả: ").strip().lower()
+
+    if not target_input:
+        print_info("Đã hủy."); return
     
     target_devices = []
     if target_input == 'all':

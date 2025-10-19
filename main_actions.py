@@ -1,87 +1,96 @@
 # main_actions.py
+import os
 import getpass
-from core.devices import list_devices, add_device, delete_device, load_devices
-from core.ui import console, print_panel, print_error, print_success, print_info, print_warning
-from core.utils import clear_screen, is_device_reachable, load_credentials
-from core.backup_restore import backup_device_config, BASE_BACKUP_DIR, restore_single_device, restore_by_branch, restore_all
-from modules.interface_info import show_interface_info
+
+from core.devices import load_devices, list_devices, add_device, delete_device
+from core.utils import clear_screen, load_credentials, is_device_reachable
+from core.ui import console, print_info, print_error, print_warning, print_success, Panel
+from core.backup_restore import restore_single_device, restore_by_branch, restore_all, backup_device_config, BASE_BACKUP_DIR
+from core.vendors.vendor_factory import get_vendor_class
 from modules.system_health import show_system_health
+from modules.interface_info import show_interface_info
 
 def menu_device_manager():
-    # ... (Copy y hệt hàm menu_device_manager từ file main.py cũ của bạn vào đây) ...
+    """Menu con để quản lý danh sách thiết bị."""
     while True:
         clear_screen()
-        menu_text = "[1] Xem danh sách\n[2] Thêm thiết bị\n[3] Xóa thiết bị\n[0] Quay lại"
-        print_panel(menu_text, title="🔧 QUẢN LÝ THIẾT BỊ")
-        choice = input("Chọn: ").strip()
-        if choice == "1": list_devices(); input("\nNhấn Enter...")
-        elif choice == "2": add_device(); input("\nNhấn Enter...")
-        elif choice == "3": delete_device(); input("\nNhấn Enter...")
-        elif choice == "0": break
+        console.rule("[bold green]Quản lý Danh sách Thiết bị[/bold green]")
+        print(" [1] Liệt kê thiết bị")
+        print(" [2] Thêm thiết bị mới")
+        print(" [3] Xóa thiết bị")
+        print("\n [0] Quay lại")
+        choice = input("\nChọn chức năng: ").strip()
+        if choice == '1': list_devices(); input("\nNhấn Enter...")
+        elif choice == '2': add_device(); input("\nNhấn Enter...")
+        elif choice == '3': delete_device(); input("\nNhấn Enter...")
+        elif choice == '0': break
         else: print_error("Lựa chọn không hợp lệ."); input("\nNhấn Enter...")
-
-
-def menu_device_actions(device, username, password):
-    # ... (Copy y hệt hàm menu_device_actions từ file main.py cũ của bạn vào đây) ...
-    while True:
-        clear_screen()
-        console.rule(f"Đang thao tác trên: [bold cyan]{device['name']} ({device['ip']})[/bold cyan]")
-        menu_text = "[1] Xem thông tin Interface\n[2] Kiểm tra hệ thống\n[3] Backup cấu hình\n[0] Quay lại"
-        print_panel(menu_text, title="🛠️ CHỌN TÁC VỤ")
-        choice = input("Chọn: ").strip()
-        if choice == "1": show_interface_info(device, username, password); input("\nNhấn Enter...")
-        elif choice == "2": show_system_health(device, username, password); input("\nNhấn Enter...")
-        elif choice == "3": backup_device_config(device, username, password, BASE_BACKUP_DIR); input("\nNhấn Enter...")
-        elif choice == "0": break
-        else: print_error("Lựa chọn không hợp lệ."); input("\nNhấn Enter...")
-
-
-def select_device_and_run_actions():
-    # ... (Copy y hệt hàm select_device_and_run_actions từ file main.py cũ của bạn vào đây) ...
-    clear_screen()
-    devices = load_devices()
-    if not devices:
-        print_warning("Chưa có thiết bị. Vui lòng thêm."); input("\nNhấn Enter..."); return
-
-    device_list = [{'name': name, **info} for name, info in devices.items()]
-    console.rule("[bold yellow]CHỌN THIẾT BỊ[/bold yellow]")
-    for i, device in enumerate(device_list, start=1): console.print(f"  [cyan]{i})[/cyan] {device['name']} ({device['ip']})")
-    console.print("  [cyan]0)[/cyan] Quay lại")
-    try:
-        choice = int(input("\nChọn: ").strip())
-        if choice == 0: return
-        if 0 < choice <= len(device_list):
-            selected_device = device_list[choice - 1]
-            if is_device_reachable(selected_device['ip']):
-                print_success("Thiết bị đang hoạt động!")
-                username, password = load_credentials()
-                if not (username and password):
-                    username = input("Username: ").strip()
-                    password = getpass.getpass("Password: ").strip()
-                menu_device_actions(selected_device, username, password)
-            else: print_error(f"Không thể kết nối."); input("\nNhấn Enter...")
-        else: print_error("Lựa chọn không hợp lệ."); input("\nNhấn Enter...")
-    except ValueError: print_error("Vui lòng nhập số."); input("\nNhấn Enter...")
 
 def menu_restore():
     """Menu con cho các chức năng Restore."""
     while True:
         clear_screen()
-        menu_text = "[1] Restore một thiết bị\n[2] Restore theo chi nhánh\n[3] Restore toàn bộ hệ thống\n[0] Quay lại"
-        print_panel(menu_text, title="🔧 KHÔI PHỤC CẤU HÌNH")
-        choice = input("Chọn: ").strip()
+        console.rule("[bold red]Khôi phục Cấu hình (Restore)[/bold red]")
+        print(" [1] Restore một thiết bị")
+        print(" [2] Restore theo chi nhánh")
+        print(" [3] Restore toàn bộ hệ thống")
+        print("\n [0] Quay lại")
+        choice = input("\nChọn chức năng: ").strip()
+        if choice == '1': restore_single_device(); input("\nNhấn Enter...")
+        elif choice == '2': restore_by_branch(); input("\nNhấn Enter...")
+        elif choice == '3': restore_all(); input("\nNhấn Enter...")
+        elif choice == '0': break
+        else: print_error("Lựa chọn không hợp lệ."); input("\nNhấn Enter...")
 
-        if choice == "1":
-            restore_single_device()
-            input("\nNhấn Enter để tiếp tục...")
-        elif choice == "2":
-            restore_by_branch()
-            input("\nNhấn Enter để tiếp tục...")
-        elif choice == "3":
-            restore_all()
-            input("\nNhấn Enter để tiếp tục...")
-        elif choice == "0":
-            break
-        else:
-            print_error("Lựa chọn không hợp lệ.")
-            input("\nNhấn Enter để tiếp tục...")
+def open_ssh_terminal():
+    """Mở một phiên SSH tương tác."""
+    clear_screen(); console.rule("[bold magenta] Mở Terminal SSH Trực tiếp [/bold magenta]"); devices = load_devices()
+    if not devices: print_warning("Chưa có thiết bị nào."); return
+    device_list = list(devices.items())
+    for i, (name, info) in enumerate(device_list, 1): print(f" [{i}] {name} ({info['ip']})")
+    try:
+        choice = int(input("\nChọn thiết bị (nhập 0 để hủy): ").strip())
+        if choice == 0: return
+        name, info = device_list[choice - 1]; device_ip = info['ip']; username, _ = load_credentials()
+        if not username: print_warning("Không tìm thấy username trong .env."); username = input("Nhập username: ").strip()
+        if not username: return
+        command = f"ssh {username}@{device_ip}"; print_info(f"\nĐang mở SSH tới {name}... (gõ 'exit' để quay lại)"); input("Nhấn Enter...")
+        clear_screen(); os.system(command)
+    except (ValueError, IndexError): print_error("Lựa chọn không hợp lệ.")
+
+def _select_and_run_single_action(action_name):
+    """Hàm chung để chọn 1 thiết bị và chạy 1 hành động."""
+    clear_screen(); console.rule(f"[bold yellow]Chọn thiết bị[/bold yellow]"); devices = load_devices()
+    if not devices: print_warning("Chưa có thiết bị."); return
+    device_list = list(devices.items());
+    for i, (name, info) in enumerate(device_list, 1): print(f" [{i}] {name} ({info['ip']})")
+    try:
+        choice = int(input("\nChọn thiết bị: ").strip()); name, info = device_list[choice - 1]; device_info = {'name': name, **info}
+        username, password = load_credentials()
+        if not (username and password): print_error("Không tìm thấy credentials."); return
+        
+        if action_name == 'show_interfaces': show_interface_info(device_info, username, password)
+        elif action_name == 'show_health': show_system_health(device_info, username, password)
+        elif action_name == 'backup_single': 
+            os.makedirs(BASE_BACKUP_DIR, exist_ok=True)
+            backup_device_config(device_info, username, password, BASE_BACKUP_DIR)
+        else: print_error("Hành động không xác định.")
+    except (ValueError, IndexError): print_error("Lựa chọn không hợp lệ.")
+
+def menu_interaction():
+    """Menu con cho Tương tác Trực tiếp."""
+    while True:
+        clear_screen()
+        console.rule("[bold magenta]TƯƠNG TÁC TRỰC TIẾP[/bold magenta]")
+        print(" [1] Mở Terminal SSH trực tiếp")
+        print(" [2] Xem thông tin Interfaces")
+        print(" [3] Kiểm tra System Health")
+        print(" [4] Backup một thiết bị")
+        print("\n [0] Quay lại")
+        choice = input("\nChọn chức năng: ").strip()
+        if choice == '1': open_ssh_terminal();
+        elif choice == '2': _select_and_run_single_action('show_interfaces'); input("\nNhấn Enter...")
+        elif choice == '3': _select_and_run_single_action('show_health'); input("\nNhấn Enter...")
+        elif choice == '4': _select_and_run_single_action('backup_single'); input("\nNhấn Enter...")
+        elif choice == '0': break
+        else: print_error("Lựa chọn không hợp lệ.");

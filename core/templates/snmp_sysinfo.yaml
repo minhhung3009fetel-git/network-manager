@@ -1,0 +1,24 @@
+# core/templates/snmp_sysinfo.yaml
+name: "Cấu hình Thông tin Hệ thống SNMP (SysInfo)"
+description: "Cập nhật các thông tin mô tả, liên hệ, vị trí cho SNMP."
+
+variables:
+  - name: "device_description"
+    prompt: "Nhập mô tả cho thiết bị (ví dụ: HN-Firewall)"
+    default: ""
+  - name: "contact_email"
+    prompt: "Nhập email liên hệ"
+    default: "admin@example.com"
+  - name: "device_location"
+    prompt: "Nhập vị trí của thiết bị (ví dụ: Hanoi Branch)"
+    default: ""
+
+commands:
+  fortinet:
+    - "config system snmp sysinfo"
+    - "set status enable"
+    - "set description \"{{ device_description }}\""
+    - "set contact \"{{ contact_email }}\""
+    - "set location \"{{ device_location }}\""
+    - "set engine-id-type auto"
+    - "end"

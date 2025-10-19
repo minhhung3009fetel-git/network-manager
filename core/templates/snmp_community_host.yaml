@@ -1,0 +1,24 @@
+# core/templates/snmp_community_host.yaml
+name: "Cấu hình SNMP Community (với Host IP)"
+description: "Tạo community string và giới hạn IP được phép truy vấn."
+
+variables:
+  - name: "community_string"
+    prompt: "Nhập SNMP community string"
+    default: "public"
+  - name: "host_ip"
+    prompt: "Nhập IP của server được phép truy vấn (ví dụ: 10.10.4.10)"
+    default: "127.0.0.1"
+
+commands:
+  fortinet:
+    - "config system snmp community"
+    - "edit 0" # Tự động tạo một ID mới
+    - "set name \"{{ community_string }}\""
+    - "config hosts"
+    - "edit 1"
+    - "set ip {{ host_ip }} 255.255.255.255"
+    - "next"
+    - "end"
+    - "next"
+    - "end"
