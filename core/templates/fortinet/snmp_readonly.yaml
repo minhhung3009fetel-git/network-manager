@@ -1,0 +1,13 @@
+name: "Cấu hình SNMP (Chỉ đọc)"
+description: "Kích hoạt SNMPv2c với community string chỉ đọc."
+variables:
+  - name: "community_string"
+    prompt: "Nhập SNMP community string"
+    default: "public"
+commands:
+  fortinet:
+    - "config system snmp community"
+    - "edit 0"
+    - "set name \"{{ community_string }}\""
+    - "set events cpu-usage mem-usage"
+    - "end"

@@ -43,20 +43,51 @@ def menu_restore():
         else: print_error("Lựa chọn không hợp lệ."); input("\nNhấn Enter...")
 
 def open_ssh_terminal():
-    """Mở một phiên SSH tương tác."""
-    clear_screen(); console.rule("[bold magenta] Mở Terminal SSH Trực tiếp [/bold magenta]"); devices = load_devices()
-    if not devices: print_warning("Chưa có thiết bị nào."); return
+    """Hiển thị danh sách thiết bị và mở một phiên SSH tương tác."""
+    clear_screen()
+    console.rule("[bold magenta] Mở Terminal SSH Trực tiếp [/bold magenta]")
+    
+    devices = load_devices()
+    if not devices:
+        print_warning("Chưa có thiết bị nào trong danh sách."); return
+        
     device_list = list(devices.items())
-    for i, (name, info) in enumerate(device_list, 1): print(f" [{i}] {name} ({info['ip']})")
+
+    for i, (name, info) in enumerate(device_list, 1):
+        print(f" [{i}] {name} ({info['ip']})")
+
     try:
-        choice = int(input("\nChọn thiết bị (nhập 0 để hủy): ").strip())
+        choice = int(input("\nChọn thiết bị để kết nối SSH (nhập 0 để hủy): ").strip())
         if choice == 0: return
-        name, info = device_list[choice - 1]; device_ip = info['ip']; username, _ = load_credentials()
-        if not username: print_warning("Không tìm thấy username trong .env."); username = input("Nhập username: ").strip()
-        if not username: return
-        command = f"ssh {username}@{device_ip}"; print_info(f"\nĐang mở SSH tới {name}... (gõ 'exit' để quay lại)"); input("Nhấn Enter...")
-        clear_screen(); os.system(command)
-    except (ValueError, IndexError): print_error("Lựa chọn không hợp lệ.")
+        if not (0 < choice <= len(device_list)):
+            print_error("Lựa chọn không hợp lệ."); return
+
+        name, info = device_list[choice - 1]
+        device_ip = info['ip']
+
+        username, _ = load_credentials()
+        if not username:
+            print_warning("Không tìm thấy username trong file .env. Vui lòng nhập thủ công.")
+            username = input("Nhập username: ").strip()
+        if not username: print_info("Đã hủy."); return
+
+        # --- THAY ĐỔI DUY NHẤT Ở DÒNG DƯỚI ĐÂY ---
+        # Thêm tùy chọn -o KexAlgorithms để cho phép thuật toán cũ
+        command = (
+            f"ssh -o KexAlgorithms=+diffie-hellman-group14-sha1 "
+            f"-o HostKeyAlgorithms=+ssh-rsa {username}@{device_ip}"
+        )
+        print_info(f"\nĐang mở phiên SSH tới {name}... (gõ 'exit' trong cửa sổ mới để quay lại menu)")
+        input("Nhấn Enter để tiếp tục...")
+        
+        clear_screen()
+        os.system(command)
+#        exit_code = os.system(command)
+#        print_info(f"\nPhiên SSH đã kết thúc với mã thoát: {exit_code}")
+#        input("\nNhan Enter de tiep tuc")
+
+    except (ValueError, IndexError):
+        print_error("Lựa chọn không hợp lệ.")
 
 def _select_and_run_single_action(action_name):
     """Hàm chung để chọn 1 thiết bị và chạy 1 hành động."""
