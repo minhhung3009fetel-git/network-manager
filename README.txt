@@ -11,7 +11,10 @@ Trước khi bắt đầu, hãy đảm bảo máy tính của bạn đã đượ
 * **Python**: Phiên bản 3.9 trở lên.
 
 Cài đặt bộ công cụ Net-SNMP.
-sudo apt-get update && sudo apt-get install snmp libsnmp-dev
+sudo apt-get update
+sudo apt-get install build-essential
+sudo apt-get install libsnmp-dev
+sudo apt-get install python3.12-dev
 ---
 ## 2. Hướng Dẫn Cài Đặt Chi Tiết
 
