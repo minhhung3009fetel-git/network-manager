@@ -6,144 +6,138 @@ import threading
 import telegram
 import asyncio
 from telegram.constants import ParseMode
-from datetime import datetime, timedelta
+from datetime import datetime
 from zoneinfo import ZoneInfo
+from dotenv import load_dotenv
 
-from core.utils import get_current_branch, load_telegram_config
-
-# --- Cấu hình ---
+# --- Tải cấu hình từ file .env ---
+load_dotenv()
+BRANCH_ID = os.getenv("BRANCH_ID", "").upper()
+REMOTE_HOST = os.getenv("REMOTE_HOST")
+BRANCH_GATEWAY = os.getenv("BRANCH_GATEWAY")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 HEARTBEAT_PORT = 9999
-HEARTBEAT_INTERVAL = 15 # Giây
-RECONNECT_INTERVAL = 5  # Giây
+HEARTBEAT_INTERVAL = 15
+RECONNECT_INTERVAL = 5
+
+# --- Lấy thông tin của server hiện tại ---
+try:
+    LOCAL_HOSTNAME = socket.gethostname()
+    LOCAL_IP = socket.gethostbyname(LOCAL_HOSTNAME)
+except socket.gaierror:
+    LOCAL_HOSTNAME = "Unknown_Server"
+    LOCAL_IP = "127.0.0.1"
 
 # --- Biến toàn cục để quản lý trạng thái ---
 connection_is_up = True
 downtime_start = None
 
+# --- CÁC HÀM XỬ LÝ ---
+
 def send_telegram_message(message):
-    """Hàm đồng bộ (synchronous) mà các phần khác của code sẽ gọi."""
+    """Hàm đồng bộ để gọi hàm gửi tin nhắn bất đồng bộ."""
     try:
         asyncio.run(send_telegram_message_async(message))
     except Exception as e:
         print(f"❌ Lỗi khi chạy tác vụ gửi Telegram: {e}")
 
 async def send_telegram_message_async(message):
-    """Hàm bất đồng bộ (asynchronous) thực sự thực hiện việc gửi tin nhắn."""
-    token, chat_id = load_telegram_config()
-    if not token or not chat_id:
-        print("⚠️ Lỗi: Chưa cấu hình TELEGRAM_BOT_TOKEN hoặc TELEGRAM_CHAT_ID trong file .env")
+    """Hàm bất đồng bộ thực sự thực hiện việc gửi tin nhắn."""
+    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+        print("⚠️ Lỗi: Chưa cấu hình Telegram trong file .env")
         return
-
+    
+    # Luôn đính kèm tên của server gửi tin
+    full_message = f"📡 *Gửi từ Server: `{LOCAL_HOSTNAME}`*\n\n{message}"
+    
     try:
-        bot = telegram.Bot(token=token)
-        # Dùng 'await' để đợi cho tác vụ gửi tin nhắn hoàn tất
-        await bot.send_message(chat_id=chat_id, text=message, parse_mode=ParseMode.MARKDOWN)
+        bot = telegram.Bot(token=TELEGRAM_BOT_TOKEN)
+        await bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=full_message, parse_mode=ParseMode.MARKDOWN)
         print(f"✅ Đã gửi thông báo Telegram thành công.")
     except Exception as e:
         print(f"❌ Lỗi khi gửi Telegram: {e}")
 
 def run_diagnostics():
-    """
-    Chạy chẩn đoán nhanh để xác định nguyên nhân sự cố.
-    Trả về một chuỗi mô tả kết quả.
-    """
-    # --- THAY ĐỔI CÁC IP NÀY CHO ĐÚNG VỚI MẠNG CỦA BẠN ---
-    current_branch = get_current_branch()
-    gateway_ip = "10.10.0.1" if current_branch == "HN" else "10.20.0.1"
-    internet_ip = "8.8.8.8"
-
+    """Chạy chẩn đoán nhanh và trả về kết quả."""
     print("🩺 Đang chạy chẩn đoán...")
-    
+    if not BRANCH_GATEWAY:
+        return "Lỗi: `BRANCH_GATEWAY` chưa được cấu hình trong .env"
+
     # 1. Kiểm tra Gateway
-    response = os.system(f"ping -c 1 -W 2 {gateway_ip} > /dev/null 2>&1")
-    if response != 0:
-        return f"❌ **Sự cố Mạng Nội bộ**: Không thể ping đến gateway ({gateway_ip})."
+    if os.system(f"ping -c 1 -W 2 {BRANCH_GATEWAY} > /dev/null 2>&1") != 0:
+        return f"❌ *Sự cố Mạng Nội bộ*: Không thể ping đến gateway ({BRANCH_GATEWAY})."
 
     # 2. Kiểm tra Internet
-    response = os.system(f"ping -c 1 -W 2 {internet_ip} > /dev/null 2>&1")
-    if response != 0:
-        return f"❌ **Sự cố Mất Internet**: Không thể ping đến {internet_ip}."
-
-    return f"✅ **Mạng Nội bộ & Internet ổn định**: Vấn đề có thể do đường truyền VPN hoặc từ chi nhánh còn lại."
+    if os.system(f"ping -c 1 -W 2 8.8.8.8 > /dev/null 2>&1") != 0:
+        return f"❌ *Sự cố Internet*: Có thể ping gateway, nhưng không thể ra Internet."
+    
+    return f"✅ *Mạng Nội bộ & Internet ổn định*: Vấn đề có thể do đường truyền VPN hoặc từ chi nhánh còn lại."
 
 def heartbeat_server(host='0.0.0.0', port=HEARTBEAT_PORT):
-    """
-    Chạy listener ở chế độ nền, lắng nghe 'PING' và trả lời 'PONG'.
-    Hàm này sẽ chạy trên server HN.
-    """
+    """Chạy listener ở chế độ nền để trả lời 'PONG'."""
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         s.bind((host, port))
         s.listen()
         while True:
-            conn, addr = s.accept()
+            conn, _ = s.accept()
             with conn:
-                data = conn.recv(1024)
-                if data == b'PING':
+                if conn.recv(1024) == b'PING':
                     conn.sendall(b'PONG')
 
-
 def monitor_connection():
-    """
-    Client kết nối đến server kia để kiểm tra heartbeat, chẩn đoán và gửi cảnh báo.
-    """
+    """Vòng lặp chính giám sát kết nối, chẩn đoán và gửi cảnh báo."""
     global connection_is_up, downtime_start
+    other_branch = "HCM" if BRANCH_ID == "HN" else "HN"
     
-    current_branch = get_current_branch()
-    other_branch = "HCM" if current_branch == "HN" else "HN"
-    other_server_ip = "10.20.3.10" if current_branch == "HN" else "10.10.4.10" # Sửa IP nếu cần
-    
-    print(f"ℹ️ [{current_branch}] Bắt đầu giám sát kết nối đến server {other_server_ip}...")
+    print(f"ℹ️ [{BRANCH_ID}] Bắt đầu giám sát kết nối đến {other_branch} ({REMOTE_HOST})...")
 
     while True:
         try:
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
                 s.settimeout(5)
-                s.connect((other_server_ip, HEARTBEAT_PORT))
+                s.connect((REMOTE_HOST, HEARTBEAT_PORT))
                 s.sendall(b'PING')
                 data = s.recv(1024)
+                
                 if data == b'PONG':
                     if not connection_is_up:
                         # --- KẾT NỐI VỪA ĐƯỢC KHÔI PHỤC ---
                         connection_is_up = True
-                        hcm_tz = ZoneInfo("Asia/Ho_Chi_Minh")
-                        now = datetime.now(tz=hcm_tz)
-                        
-                        if downtime_start:
-                            downtime_delta = now - downtime_start
-                            downtime_str = str(downtime_delta).split('.')[0] # Bỏ microsecond
-                        else:
-                            downtime_str = "không xác định"
-
+                        now = datetime.now(tz=ZoneInfo("Asia/Ho_Chi_Minh"))
+                        downtime_str = str(now - downtime_start).split('.')[0] if downtime_start else "không xác định"
                         print(f"✅ [{now.strftime('%H:%M:%S')}] Kết nối đã được khôi phục.")
                         
-                        message = (
-                            f"✅ *KHÔI PHỤC KẾT NỐI {current_branch}-{other_branch}*\n\n"
-                            f"Kết nối đã được thiết lập lại thành công.\n"
-                            f"*Tổng thời gian gián đoạn:* `{downtime_str}`"
-                        )
-                        send_telegram_message(message)
+                        # LOGIC PHÂN XỬ: Chỉ server có IP "nhỏ hơn" mới gửi tin khôi phục
+                        if LOCAL_IP < REMOTE_HOST:
+                            print(f"ℹ️ Tôi là server chính ({LOCAL_IP}), đang gửi thông báo khôi phục.")
+                            message = (
+                                f"✅ *KHÔI PHỤC KẾT NỐI {BRANCH_ID}-{other_branch}*\n\n"
+                                f"Kết nối đã được thiết lập lại thành công.\n"
+                                f"*Tổng thời gian gián đoạn:* `{downtime_str}`"
+                            )
+                            send_telegram_message(message)
+                        else:
+                            print(f"ℹ️ Tôi là server phụ ({LOCAL_IP}), sẽ không gửi thông báo khôi phục.")
+                        
                         downtime_start = None
                     else:
                         print(f"✅ Kết nối ổn định.")
-
                     time.sleep(HEARTBEAT_INTERVAL)
+                else:
+                    raise ConnectionError("Phản hồi không hợp lệ từ server.")
+
         except Exception as e:
             if connection_is_up:
                 # --- KẾT NỐI VỪA BỊ MẤT ---
                 connection_is_up = False
-                hcm_tz = ZoneInfo("Asia/Ho_Chi_Minh")
-                downtime_start = datetime.now(tz=hcm_tz)
-                
+                downtime_start = datetime.now(tz=ZoneInfo("Asia/Ho_Chi_Minh"))
                 print(f"🚨 [{downtime_start.strftime('%H:%M:%S')}] Mất kết nối! Lỗi: {e}")
                 
-                # Chạy chẩn đoán
                 diagnostic_result = run_diagnostics()
-                
-                # Gửi cảnh báo
                 message = (
-                    f"🚨 *CẢNH BÁO MẤT KẾT NỐI {current_branch}-{other_branch}*\n\n"
-                    f"*Phát hiện tại:* Server `{current_branch}`\n"
+                    f"🚨 *CẢNH BÁO MẤT KẾT NỐI {BRANCH_ID}-{other_branch}*\n\n"
                     f"*Thời gian:* `{downtime_start.strftime('%Y-%m-%d %H:%M:%S')}`\n\n"
                     f"*Kết quả chẩn đoán:*\n{diagnostic_result}"
                 )
@@ -153,16 +147,15 @@ def monitor_connection():
             
             time.sleep(RECONNECT_INTERVAL)
 
-
+# --- KHỐI LỆNH CHÍNH ĐỂ CHẠY ---
 if __name__ == "__main__":
-    current_branch = get_current_branch()
-    if not current_branch:
-        print("Lỗi: Vui lòng đặt BRANCH_ID='HN' hoặc 'HCM' trong file .env")
+    if not all([BRANCH_ID, REMOTE_HOST, BRANCH_GATEWAY]):
+        print("Lỗi: Vui lòng đặt đủ các biến BRANCH_ID, REMOTE_HOST, BRANCH_GATEWAY trong file .env")
     else:
-        # TẤT CẢ các server đều sẽ chạy listener ở chế độ nền
-        print(f"ℹ️ [{current_branch}] Khởi động heartbeat server listener...")
+        # Tất cả server đều chạy listener ở chế độ nền
+        print(f"ℹ️ [{BRANCH_ID}] Khởi động heartbeat server listener...")
         server_thread = threading.Thread(target=heartbeat_server, daemon=True)
         server_thread.start()
 
-        # Và TẤT CẢ các server cũng đều chạy client để giám sát
+        # Và tất cả server cũng đều chạy client để giám sát
         monitor_connection()
