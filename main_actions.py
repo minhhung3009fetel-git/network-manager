@@ -9,6 +9,7 @@ from core.backup_restore import restore_single_device, restore_by_branch, restor
 from core.vendors.vendor_factory import get_vendor_class
 from modules.system_health import show_system_health
 from modules.interface_info import show_interface_info
+from modules import web_filter
 
 def menu_device_manager():
     """Menu con để quản lý danh sách thiết bị."""
@@ -81,10 +82,10 @@ def open_ssh_terminal():
         input("Nhấn Enter để tiếp tục...")
         
         clear_screen()
-        os.system(command)
-#        exit_code = os.system(command)
-#        print_info(f"\nPhiên SSH đã kết thúc với mã thoát: {exit_code}")
-#        input("\nNhan Enter de tiep tuc")
+#        os.system(command)
+        exit_code = os.system(command)
+        print_info(f"\nPhiên SSH đã kết thúc với mã thoát: {exit_code}")
+        input("\nNhan Enter de tiep tuc")
 
     except (ValueError, IndexError):
         print_error("Lựa chọn không hợp lệ.")
@@ -125,3 +126,58 @@ def menu_interaction():
         elif choice == '4': _select_and_run_single_action('backup_single'); input("\nNhấn Enter...")
         elif choice == '0': break
         else: print_error("Lựa chọn không hợp lệ.");
+
+def menu_web_filter():
+    """Menu quản lý Policy Lọc Web (đã sửa lỗi)."""
+    clear_screen()
+    console.rule("[bold blue]🛡️ Quản lý Policy Lọc Web[/bold blue]")
+    
+    devices = load_devices()
+    firewalls = {name: info for name, info in devices.items() if 'fortinet' in info['device_type']}
+    if not firewalls: print_warning("Không tìm thấy thiết bị Fortinet nào."); return
+
+    fw_list = list(firewalls.items())
+    for i, (name, _) in enumerate(fw_list, 1): print(f" [{i}] {name}")
+    try:
+        choice = int(input("\nChọn Firewall để cấu hình: ").strip())
+        name, info = fw_list[choice - 1]
+        target_fw = {'name': name, **info}
+    except (ValueError, IndexError):
+        print_error("Lựa chọn không hợp lệ."); return
+
+    username, password = load_credentials()
+    from core.ssh_client import SSHClient
+    ssh = SSHClient(target_fw, username, password)
+    if not ssh.connect(): return
+
+    while True:
+        clear_screen()
+        console.rule(f"[bold blue]📜 Policy trên {target_fw['name']}[/bold blue]")
+        rules = web_filter.get_rules(ssh)
+        web_filter.display_rules_table(rules)
+        
+        print("\n--- MENU POLICY ---")
+        print(" [1] Thêm Rule mới"); print(" [2] Kích hoạt/Vô hiệu hóa Rule"); print(" [3] Xóa Rule")
+        print("\n [0] Quay lại")
+        choice = input("\nChọn chức năng: ").strip()
+
+        if choice == '1':
+            url = input("Nhập trang web cần xử lý (ví dụ: tiktok.com): ").strip()
+            action = input("Chọn hành động (block/allow) [mặc định: block]: ").strip().lower() or "block"
+            if url: web_filter.add_rule(ssh, url, action, "enable")
+        elif choice == '2':
+            try:
+                rule_id_str = input("Nhập ID của rule cần thay đổi trạng thái: ").strip()
+                rule_to_toggle = next(r for r in rules if r['id'] == rule_id_str)
+                web_filter.toggle_rule_status(ssh, rule_to_toggle['id'], rule_to_toggle['status'])
+            except (ValueError, StopIteration): print_error("ID không hợp lệ.")
+        elif choice == '3':
+            try:
+                rule_id_str = input("Nhập ID của rule cần xóa: ").strip()
+                rule_to_delete = next(r for r in rules if r['id'] == rule_id_str)
+                if input(f"Bạn có chắc muốn xóa rule cho '{rule_to_delete['url']}'? (y/n): ").lower() == 'y':
+                    web_filter.delete_rule(ssh, rule_to_delete['id'])
+            except (ValueError, StopIteration): print_error("ID không hợp lệ.")
+        elif choice == '0':
+            ssh.disconnect(); break
+        input("\nNhấn Enter để tiếp tục...")

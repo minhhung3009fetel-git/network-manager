@@ -32,3 +32,10 @@ class SSHClient:
         if self.conn:
             self.conn.disconnect()
             self.conn = None
+
+    def run_config_set(self, commands):
+        """Hàm an toàn để gửi một bộ lệnh cấu hình."""
+        if not self.conn or not self.conn.is_alive():
+            self.connect()
+        if self.conn:
+            return self.conn.send_config_set(commands)

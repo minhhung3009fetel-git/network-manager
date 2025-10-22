@@ -10,7 +10,8 @@ from core.backup_restore import backup_all_devices
 from main_actions import (
     menu_device_manager, 
     menu_restore, 
-    menu_interaction
+    menu_interaction,
+    menu_web_filter
 )
 
 def menu_monitoring_diagnostics():
@@ -73,6 +74,7 @@ def main_menu():
         print(" [2] Quản lý Cấu hình")
         print(" [3] Tương tác Trực tiếp")
         print(" [4] Quản lý Danh sách Thiết bị")
+        print(" [5] Quản lý Policy Lọc Web")
         print("\n [0] Thoát chương trình")
         
         choice = input("\nChọn chức năng: ").strip().lower()
@@ -85,6 +87,8 @@ def main_menu():
             menu_interaction()
         elif choice == '4':
             menu_device_manager()
+        elif choice == '5':
+            menu_web_filter()
         elif choice == '0':
             clear_screen(); console.print("[bold blue]👋 Tạm biệt![/bold blue]"); break
         else:

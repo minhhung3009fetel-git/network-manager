@@ -7,3 +7,4 @@ __pycache__/
 # Môi trường ảo
 venv/
 .venv/
+.downtime.log
