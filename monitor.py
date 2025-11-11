@@ -9,6 +9,8 @@ from telegram.constants import ParseMode
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from dotenv import load_dotenv
+from core.devices import load_devices
+from core.utils import is_device_reachable
 
 # --- Tải cấu hình từ file .env ---
 load_dotenv()
@@ -59,15 +61,57 @@ async def send_telegram_message_async(message):
         print(f"✅ Đã gửi thông báo Telegram thành công.")
     except Exception as e: print(f"❌ Lỗi khi gửi Telegram: {e}")
 
-def run_diagnostics():
-    """Chạy chẩn đoán nhanh và trả về kết quả."""
-    print("🩺 Đang chạy chẩn đoán...")
-    if not BRANCH_GATEWAY: return "Lỗi: `BRANCH_GATEWAY` chưa được cấu hình."
+def run_diagnostics(other_branch_id):
+    """
+    Chạy chẩn đoán thông minh:
+    1. Kiểm tra Local (Gateway, Internet).
+    2. Nếu Local ổn, kiểm tra Remote (Router, FW, Core).
+    """
+    print("🩺 Đang chạy chẩn đoán thông minh...")
+    
+    # --- BƯỚC 1: KIỂM TRA LOCAL (Như cũ) ---
+    if not BRANCH_GATEWAY: 
+        return "Lỗi: `BRANCH_GATEWAY` chưa được cấu hình."
     if os.system(f"ping -c 1 -W 2 {BRANCH_GATEWAY} > /dev/null 2>&1") != 0:
         return f"❌ *Sự cố Mạng Nội bộ*: Không thể ping đến gateway ({BRANCH_GATEWAY})."
     if os.system(f"ping -c 1 -W 2 8.8.8.8 > /dev/null 2>&1") != 0:
         return f"❌ *Sự cố Internet*: Có thể ping gateway, nhưng không thể ra Internet."
-    return f"✅ *Mạng Nội bộ & Internet ổn định*: Vấn đề có thể do VPN hoặc từ chi nhánh còn lại."
+
+    # --- BƯỚC 2: KIỂM TRA REMOTE (Logic mới) ---
+    # Nếu đến được đây, nghĩa là Local & Internet đã OK.
+    try:
+        devices = load_devices()
+        
+        # Xác định các thiết bị lõi của chi nhánh kia
+        remote_router_name = f"{other_branch_id}-Router"
+        remote_fw_name = f"{other_branch_id}-Firewall"
+        remote_core_name = f"{other_branch_id}-Core"
+
+        # Lấy IP của các thiết bị remote từ file devices.txt
+        remote_router_ip = devices.get(remote_router_name, {}).get('ip')
+        remote_fw_ip = devices.get(remote_fw_name, {}).get('ip')
+        remote_core_ip = devices.get(remote_core_name, {}).get('ip')
+
+        # Kiểm tra lần lượt theo topo mạng (dùng hàm check port 22)
+        if remote_router_ip and not is_device_reachable(remote_router_ip):
+            return (f"✅ *Mạng Nội bộ & Internet ổn định*.\n"
+                    f"⚠️ *Sự cố tại {other_branch_id}*: Rất có thể {remote_router_name} ({remote_router_ip}) đang gặp sự cố.")
+        
+        if remote_fw_ip and not is_device_reachable(remote_fw_ip):
+            return (f"✅ *Mạng Nội bộ & Internet ổn định*.\n"
+                    f"⚠️ *Sự cố tại {other_branch_id}*: Router có vẻ ổn, nhưng {remote_fw_name} ({remote_fw_ip}) không thể truy cập.")
+        
+        if remote_core_ip and not is_device_reachable(remote_core_ip):
+            return (f"✅ *Mạng Nội bộ & Internet ổn định*.\n"
+                    f"⚠️ *Sự cố tại {other_branch_id}*: Router/FW có vẻ ổn, nhưng {remote_core_name} ({remote_core_ip}) không thể truy cập.")
+
+        # Nếu tất cả thiết bị lõi đều UP, nhưng server (REMOTE_HOST) vẫn DOWN?
+        return (f"✅ *Mạng Nội bộ & Internet ổn định*.\n"
+                f"✅ *Hạ tầng {other_branch_id} (R, FW, Core) có vẻ vẫn UP*.\n"
+                f"➡️ *Vấn đề* có thể nằm ở server đích ({REMOTE_HOST}) hoặc lỗi định tuyến/VPN policy.")
+
+    except Exception as e:
+        return f"Lỗi khi chẩn đoán remote: {str(e)}"
 
 def heartbeat_server(host='0.0.0.0', port=HEARTBEAT_PORT):
     """Chạy listener nền để trả lời 'PONG'."""
@@ -115,7 +159,7 @@ def monitor_connection():
                 with open(STATE_FILE, "w") as f: f.write(downtime_start.isoformat())
                 print(f"🚨 [{downtime_start.strftime('%H:%M:%S')}] Mất kết nối! Lỗi: {e}")
                 
-                diagnostic_result = run_diagnostics()
+                diagnostic_result = run_diagnostics(other_branch)
                 message = (f"🚨 *CẢNH BÁO MẤT KẾT NỐI {BRANCH_ID}-{other_branch}*\n\n"
                            f"*Thời gian:* `{downtime_start.strftime('%Y-%m-%d %H:%M:%S')}`\n\n"
                            f"*Kết quả chẩn đoán:*\n{diagnostic_result}")
