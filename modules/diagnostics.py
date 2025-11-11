@@ -96,7 +96,7 @@ def run_diagnostics():
     is_up = is_device_reachable(target_device['ip'])
     if not is_up:
         print_info("Thiết bị không thể truy cập. Bắt đầu chẩn đoán kết nối mạng...")
-        gateway_ip = "10.10.0.1" if target_device['name'].upper().startswith("HN") else "10.20.0.1"
+        gateway_ip = "10.10.4.1" if target_device['name'].upper().startswith("HN") else "10.20.3.1"
         steps = []; steps.append(f"[bold red][FAIL][/bold red] Ping đến {target_device['name']} ({target_device['ip']})")
         ping_gateway_ok = _ping_test(gateway_ip)
         steps.append(f"[bold green][PASS][/bold green] Ping đến Gateway ({gateway_ip})" if ping_gateway_ok else f"[bold red][FAIL][/bold red] Ping đến Gateway ({gateway_ip})")
