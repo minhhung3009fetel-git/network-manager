@@ -32,7 +32,8 @@ def _snmp_deep_dive(device):
 
     print_info("Thiết bị đang UP. Bắt đầu kiểm tra chuyên sâu bằng SNMP...")
     
-    IF_NAME_OID = '1.3.6.1.2.1.31.1.1.1.1'
+    IF_NAME_OID = '1.3.6.1.2.1.2.2.1.2'
+#    IF_NAME_OID = '1.3.6.1.2.1.31.1.1.1.1'
     IF_OPER_STATUS_OID = '1.3.6.1.2.1.2.2.1.8'
     IF_IN_ERRORS_OID = '1.3.6.1.2.1.2.2.1.14'
     IF_OUT_ERRORS_OID = '1.3.6.1.2.1.2.2.1.20'
@@ -52,7 +53,8 @@ def _snmp_deep_dive(device):
     for index, name in if_names.items():
         if index == 'error': continue
         status = if_statuses.get(index)
-        if status == '2' or (status and 'down' in status.lower()):
+        status_str = str(status)
+        if status_str == '2' or (status_str and 'down' in status_str.lower()):
             problem = f"Interface [bold magenta]{name}[/bold magenta] đang ở trạng thái [bold red]DOWN[/bold red]."
             problems_found.append(problem)
             steps.append(f"[bold red][FAIL][/bold red] Trạng thái cổng {name}: down")
@@ -94,7 +96,7 @@ def run_diagnostics():
     is_up = is_device_reachable(target_device['ip'])
     if not is_up:
         print_info("Thiết bị không thể truy cập. Bắt đầu chẩn đoán kết nối mạng...")
-        gateway_ip = "10.10.0.1" if target_device['name'].upper().startswith("HN") else "1.1.1.1"
+        gateway_ip = "10.10.0.1" if target_device['name'].upper().startswith("HN") else "10.20.0.1"
         steps = []; steps.append(f"[bold red][FAIL][/bold red] Ping đến {target_device['name']} ({target_device['ip']})")
         ping_gateway_ok = _ping_test(gateway_ip)
         steps.append(f"[bold green][PASS][/bold green] Ping đến Gateway ({gateway_ip})" if ping_gateway_ok else f"[bold red][FAIL][/bold red] Ping đến Gateway ({gateway_ip})")

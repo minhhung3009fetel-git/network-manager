@@ -96,11 +96,11 @@ def monitor_connection():
                         print(f"✅ [{now.strftime('%H:%M:%S')}] Kết nối đã được khôi phục.")
                         if os.path.exists(STATE_FILE): os.remove(STATE_FILE)
                         
-                        if LOCAL_IP < REMOTE_HOST:
-                            message = (f"✅ *KHÔI PHỤC KẾT NỐI {BRANCH_ID}-{other_branch}*\n\n"
-                                       f"Kết nối đã được thiết lập lại thành công.\n"
-                                       f"*Tổng thời gian gián đoạn:* `{downtime_str}`")
-                            send_telegram_message(message)
+                       # if LOCAL_IP < REMOTE_HOST:
+                        message = (f"✅ *KHÔI PHỤC KẾT NỐI {BRANCH_ID}-{other_branch}*\n\n"
+                                   f"Kết nối đã được thiết lập lại thành công.\n"
+                                   f"*Tổng thời gian gián đoạn:* `{downtime_str}`")
+                        send_telegram_message(message)
                         
                         downtime_start = None
                     else:
